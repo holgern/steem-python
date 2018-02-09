@@ -68,11 +68,15 @@
             ],
             "version": "==0.7.2"
         },
-        "pycrypto": {
+        "pycryptodomex": {
             "hashes": [
-                "sha256:f2ce1e989b272cfcb677616763e0a2e7ec659effa67a88aa92b3a65528f60a3c"
+                "sha256:02dda17f54cbb37dcad6bd52c21f1208be1e435c7c8b48922366dad989a0c597",
+                "sha256:1088099e88ba7238cebd3c44b38edbe7130b229a3d7d7b4c9b0ed06533dd13e6",
+                "sha256:bf2a5b6eee8ca198eea13bcbd2df62721ed9b5f5c8660ac56be7249ff349f582",
+                "sha256:bc30c42399b268788407a1ac692ad4011e774809034e7a0bc9559b8feb727ea1",
+                "sha256:46a3c64f377f14fe9ccaa7b3307de76e312edd0cf7543edb6f159e519081254c"
             ],
-            "version": "==2.6.1"
+            "version": "==3.4.12"
         },
         "scrypt": {
             "hashes": [
@@ -89,7 +93,9 @@
                 "sha256:c8909a2089fd1199781aa7ce2cb66b8866d40a9f9e1fba082e067ed9524d87e9",
                 "sha256:4333b67f190e5eaddc8800aefe33abd7e81b589bbe84a84be66872a4955dad6e",
                 "sha256:aeab005a8ae43a6e5d0165ce433a15955b151045d2bbfc52a8c96f100f825323",
-                "sha256:bb141584fa0ebdfb8a2a1fc7ddcf119ee18b1b9cd0fb3e4df9615760648b9d49"
+                "sha256:bb141584fa0ebdfb8a2a1fc7ddcf119ee18b1b9cd0fb3e4df9615760648b9d49",
+                "sha256:7e3be5fe70f74a01a83c60da0b010b2fe6c3d3a11b8a1c9532b583c9a440d529",
+                "sha256:59a03822df232a30246b59a3801292a350d19fa636f11ea86df2214f35dade22"
             ],
             "version": "==0.8.0"
         },
