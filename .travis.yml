@@ -1,0 +1,89 @@
+# After changing this file, check it on:
+#   http://lint.travis-ci.org/
+language: python
+sudo: false
+
+env:
+  global:
+    # Use non-interactive backend
+    - MPLBACKEND: Agg
+    - CYTHON_TRACE: 0
+
+matrix:
+  include:
+    - os: linux
+      python: 2.7
+      env:
+        - PYFLAKES=1
+        - PEP8=1
+      before_install:
+        - pip install pep8==1.6.2
+        - pip install pyflakes
+      script:
+        - PYFLAKES_NODOCTEST=1 pyflakes steemlayer demo | grep -E -v 'unable to detect undefined names|assigned to but never used|imported but unused|redefinition of unused' > test.out; cat test.out; test \! -s test.out
+        - pep8 steemlayer demo
+    - os: linux
+      python: 3.6
+      env:
+        - USE_WHEEL=1
+    - os: linux
+      python: 3.6
+      env:
+        - USE_SDIST=1
+    - os: linux
+      python: 3.6
+    - os: linux
+      python: 3.6
+      env:
+        - REFGUIDE_CHECK=1  # run doctests only
+    - os: osx
+      osx_image: xcode9.2
+      language: objective-c
+      env:
+        - NUMPYSPEC=numpy
+        - TRAVIS_PYTHON_VERSION=3.6
+        - TOXENV=py36
+
+cache: pip
+
+before_install:
+  - uname -a
+  - df -h
+  - ulimit -a
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then source .travis/travis_osx_install.sh; fi
+  - ccache -s
+  - which python; python --version
+  - pip install --upgrade pip
+  - pip install --upgrade wheel
+  # Set numpy version first, other packages link against it
+  - pip install six nose coverage codecov pipenv
+  - set -o pipefail 
+  - |
+    if [ "${REFGUIDE_CHECK}" == "1" ]; then
+        pip install sphinx numpydoc
+    fi
+
+script:
+  # Define a fixed build dir so next step works
+  - |
+    if [ "${USE_WHEEL}" == "1" ]; then
+        # Need verbose output or TravisCI will terminate after 10 minutes
+        pip wheel . -v
+        pip install steem*.whl -v
+        pushd demo
+        python setup.py test
+        popd
+    elif [ "${USE_SDIST}" == "1" ]; then
+        python setup.py sdist
+        pushd dist
+        pip install steem* -v
+        python setup.py test
+        popd
+    elif [ "${REFGUIDE_CHECK}" == "1" ]; then
+        pip install -e . -v
+        python util/refguide_check.py --doctests
+    else
+        python setup.py build
+        python setup.py test
+    fi
+
