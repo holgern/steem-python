@@ -43,6 +43,7 @@ matrix:
         - NUMPYSPEC=numpy
         - TRAVIS_PYTHON_VERSION=3.6
         - TOXENV=py36
+		
 
 cache: pip
 
