@@ -43,13 +43,13 @@ install:
   - conda config --add channels wheeler-microfluidics
   - conda update -q conda
   - conda info -a
-  - conda install --yes nose conda-build path_helpers pycrypto setuptools pip pipenv 
+  - conda install --yes nose conda-build path_helpers pycrypto setuptools pip 
   # Upgrade to the latest version of pip to avoid it displaying warnings
   # about it being out of date.
   #- "pip install --disable-pip-version-check --user --upgrade pip"
   #- "python -m pip install -U pip setuptools"
   #- "pip install --user pycrypto Paramiko"
-  - "pip install --user --upgrade steem"
+  - "pip install --user --upgrade pipenv steem"
 
 build_script:
   # Build the compiled extension
