@@ -92,8 +92,8 @@ class Wallet:
         if not self.created():
             self.newWallet()
 
-        if (self.masterpassword is None
-                and self.configStorage[self.MasterPassword.config_key]):
+        if (self.masterpassword is None and
+                self.configStorage[self.MasterPassword.config_key]):
             if pwd is None:
                 pwd = self.getPassword()
             masterpwd = self.MasterPassword(pwd)

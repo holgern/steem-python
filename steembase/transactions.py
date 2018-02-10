@@ -93,8 +93,8 @@ class SignedTransaction(GrapheneObject):
                     return i
             else:
                 p = self.recover_public_key(digest, signature, i)
-                if (p.to_string() == pubkey.to_string()
-                        or self.compressedPubkey(p) == pubkey.to_string()):
+                if (p.to_string() == pubkey.to_string() or
+                        self.compressedPubkey(p) == pubkey.to_string()):
                     return i
         return None
 
@@ -236,10 +236,10 @@ class SignedTransaction(GrapheneObject):
         return pubKeysFound
 
     def _is_canonical(self, sig):
-        return (not (sig[0] & 0x80)
-                and not (sig[0] == 0 and not (sig[1] & 0x80))
-                and not (sig[32] & 0x80)
-                and not (sig[32] == 0 and not (sig[33] & 0x80)))
+        return (not (sig[0] & 0x80) and
+                not (sig[0] == 0 and not (sig[1] & 0x80)) and
+                not (sig[32] & 0x80) and
+                not (sig[32] == 0 and not (sig[33] & 0x80)))
 
     # FIXME(sneak) audit this function
     def sign(self, wifkeys, chain=None):

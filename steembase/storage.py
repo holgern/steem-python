@@ -235,8 +235,8 @@ class Configuration(DataDir):
     def checkBackup(self):
         """ Backup the SQL database every 7 days
         """
-        if ("lastBackup" not in configStorage
-                or configStorage["lastBackup"] == ""):
+        if ("lastBackup" not in configStorage or
+                configStorage["lastBackup"] == ""):
             print("No backup has been created yet!")
             self.refreshBackup()
         try:
@@ -391,8 +391,8 @@ class MasterPassword(object):
         """ Generate a new random masterpassword
         """
         # make sure to not overwrite an existing key
-        if (self.config_key in configStorage
-                and configStorage[self.config_key]):
+        if (self.config_key in configStorage and
+                configStorage[self.config_key]):
             return
         self.decrypted_master = hexlify(os.urandom(32)).decode("ascii")
 

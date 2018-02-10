@@ -246,7 +246,7 @@ class Post(dict):
         """
         # Test if post is archived, if so, voting is worthless but just
         # pollutes the blockchain and account history
-        if self.get('net_rshares', None) == None:
+        if self.get('net_rshares', None) is None:
             raise VotingInvalidOnArchivedPost
         return self.commit.vote(self.identifier, weight, account=voter)
 

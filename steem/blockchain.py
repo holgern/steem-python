@@ -222,7 +222,7 @@ class Blockchain(object):
             time.sleep(sleep_interval)
             start_block = head_block + 1
 
-    def stream(self, filter_by: Union[str, list] = list(), *args, **kwargs):
+    def stream(self, filter_by: Union[str, list]=list(), *args, **kwargs):
         """ Yield a stream of operations, starting with current head block.
 
             Args:
@@ -260,7 +260,7 @@ class Blockchain(object):
                         }
 
     def history(self,
-                filter_by: Union[str, list] = list(),
+                filter_by: Union[str, list]=list(),
                 start_block=1,
                 end_block=None,
                 raw_output=False,
@@ -286,8 +286,8 @@ class Blockchain(object):
             **kwargs)
 
     def ops(self, *args, **kwargs):
-        raise DeprecationWarning('Blockchain.ops() is deprecated. Please use '
-                                 + 'Blockchain.stream_from() instead.')
+        raise DeprecationWarning('Blockchain.ops() is deprecated. Please use' +
+                                 ' Blockchain.stream_from() instead.')
 
     def replay(self, **kwargs):
         warnings.warn('Blockchain.replay() is deprecated. ' +
