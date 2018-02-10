@@ -43,7 +43,7 @@ install:
   - conda config --add channels wheeler-microfluidics
   - conda update -q conda
   - conda info -a
-  - conda install --yes nose conda-build path_helpers pycrypto setuptools pip 
+  - conda install --yes nose conda-build pycrypto setuptools pip 
   # Upgrade to the latest version of pip to avoid it displaying warnings
   # about it being out of date.
   #- "pip install --disable-pip-version-check --user --upgrade pip"
