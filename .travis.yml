@@ -47,25 +47,8 @@ before_install:
   - pip install --upgrade wheel
   # Set numpy version first, other packages link against it
   - pip install six nose coverage codecov pipenv
-  - set -o pipefail
 
 script:
-  # Define a fixed build dir so next step works
-  - |
-    if [ "${USE_WHEEL}" == "1" ]; then
-        # Need verbose output or TravisCI will terminate after 10 minutes
-        pip wheel . -v
-        pip install steem*.whl -v
-        pushd demo
-        pipenv run py.test
-        popd
-    elif [ "${USE_SDIST}" == "1" ]; then
-        python setup.py sdist
-        pushd dist
-        pip install steem* -v
-        pipenv run py.test
-        popd
-    else
-        python setup.py build
-        pipenv run py.test
-    fi
+  - pipenv install --three --dev
+  - pipenv install .
+  - pipenv run py.test
