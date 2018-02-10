@@ -53,12 +53,12 @@ install:
 
 build_script:
   # Build the compiled extension
-  - "pipenv install --three --dev"
-  - "pipenv install ."
+  - "python setup.py build"
+  - "python setup.py install --user"
 
 test_script:
   # Run the project tests
-  - "pipenv run py.test"
+  - "python setup.py test"
 
 after_test:
   # If tests are successful, create binary packages for the project.
