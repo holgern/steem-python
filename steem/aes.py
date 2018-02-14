@@ -1,5 +1,5 @@
-from Cryptodome import Random
-from Cryptodome.Cipher import AES
+from Crypto import Random
+from Crypto.Cipher import AES
 import hashlib
 import base64
 
