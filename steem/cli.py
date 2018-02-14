@@ -764,7 +764,7 @@ def legacyentry():
 
     # initialize STEEM instance
     options = {
-        "node": args.node,
+        "nodes": [args.node] if args.node else None,
         "unsigned": args.unsigned,
         "expires": args.expires
     }
@@ -774,6 +774,7 @@ def legacyentry():
         options.update({"wif": []})
 
     steem = stm.Steem(no_broadcast=args.no_broadcast, **options)
+    set_shared_steemd_instance(steem)
 
     if args.command == "set":
         if (args.key in ["default_account"] and args.value[0] == "@"):
