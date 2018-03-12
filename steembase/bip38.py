@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 try:
     from Crypto.Cipher import AES
 except ImportError:
-    raise ImportError("Missing dependency: pycryptodome")
+    raise ImportError("Missing dependency: pycrypto")
 
 SCRYPT_MODULE = None
 if not SCRYPT_MODULE:
@@ -43,13 +43,11 @@ def _encrypt_xor(a, b, aes):
 
 def encrypt(privkey, passphrase):
     """ BIP0038 non-ec-multiply encryption. Returns BIP0038 encrypted privkey.
-
     :param privkey: Private key
     :type privkey: Base58
     :param str passphrase: UTF-8 encoded passphrase for encryption
     :return: BIP0038 non-ec-multiply encrypted wif key
     :rtype: Base58
-
     """
     privkeyhex = repr(privkey)  # hex
     addr = format(privkey.uncompressed.address, "BTC")
@@ -62,7 +60,7 @@ def encrypt(privkey, passphrase):
     else:
         raise ValueError("No scrypt module loaded")
     (derived_half1, derived_half2) = (key[:32], key[32:])
-    aes = AES.new(derived_half2, AES.MODE_ECB)
+    aes = AES.new(derived_half2)
     encrypted_half1 = _encrypt_xor(privkeyhex[:32], derived_half1[:16], aes)
     encrypted_half2 = _encrypt_xor(privkeyhex[32:], derived_half1[16:], aes)
     " flag byte is forced 0xc0 because Graphene only uses compressed keys "
@@ -76,14 +74,12 @@ def encrypt(privkey, passphrase):
 
 def decrypt(encrypted_privkey, passphrase):
     """BIP0038 non-ec-multiply decryption. Returns WIF privkey.
-
     :param Base58 encrypted_privkey: Private key
     :param str passphrase: UTF-8 encoded passphrase for decryption
     :return: BIP0038 non-ec-multiply decrypted key
     :rtype: Base58
     :raises SaltException: if checksum verification failed (e.g. wrong
     password)
-
     """
 
     d = unhexlify(base58decode(encrypted_privkey))
@@ -103,7 +99,7 @@ def decrypt(encrypted_privkey, passphrase):
     derivedhalf2 = key[32:64]
     encryptedhalf1 = d[0:16]
     encryptedhalf2 = d[16:32]
-    aes = AES.new(derivedhalf2, AES.MODE_ECB)
+    aes = AES.new(derivedhalf2)
     decryptedhalf2 = aes.decrypt(encryptedhalf2)
     decryptedhalf1 = aes.decrypt(encryptedhalf1)
     privraw = decryptedhalf1 + decryptedhalf2
