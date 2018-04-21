@@ -9,7 +9,7 @@ from itertools import cycle
 import concurrent.futures
 import certifi
 import urllib3
-from steembase.exceptions import RPCError
+from steembase.exceptions import RPCError, RPCErrorRecoverable
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, ProtocolError
 
@@ -53,8 +53,10 @@ class HttpClient(object):
 
     """
 
+    # set of endpoints which were detected to not support condenser_api
+    non_appbase_nodes = set()
+
     def __init__(self, nodes, **kwargs):
-        self.return_with_args = kwargs.get('return_with_args', False)
         self.re_raise = kwargs.get('re_raise', True)
         self.max_workers = kwargs.get('max_workers', None)
 
@@ -95,6 +97,36 @@ class HttpClient(object):
 
         log_level = kwargs.get('log_level', logging.INFO)
         logger.setLevel(log_level)
+
+    def _curr_node_downgraded(self):
+        return self.url in HttpClient.non_appbase_nodes
+
+    def _downgrade_curr_node(self):
+        HttpClient.non_appbase_nodes.add(self.url)
+
+    def _is_error_recoverable(self, error):
+        assert 'message' in error, "missing error msg key: {}".format(error)
+        assert 'code' in error, "missing error code key: {}".format(error)
+        message = error['message']
+        code = error['code']
+
+        # common steemd error
+        # {"code"=>-32003, "message"=>"Unable to acquire database lock"}
+        if message == 'Unable to acquire database lock':
+            return True
+
+        # rare steemd error
+        # {"code"=>-32000, "message"=>"Unknown exception", "data"=>"0 exception: unspecified\nUnknown Exception\n[...]"}
+        if message == 'Unknown exception':
+            return True
+
+        # generic jussi error
+        # {'code': -32603, 'message': 'Internal Error', 'data': {'error_id': 'c7a15140-f306-4727-acbd-b5e8f3717e9b',
+        #         'request': {'amzn_trace_id': 'Root=1-5ad4cb9f-9bc86fbca98d9a180850fb80', 'jussi_request_id': None}}}
+        if message == 'Internal Error' and code == -32603:
+            return True
+
+        return False
 
     def next_node(self):
         """ Switch to the next available node.
@@ -144,31 +176,31 @@ class HttpClient(object):
             Otherwise, a Python dictionary is returned.
 
         """
-        api = kwargs.pop('api', None)
+
+        # if kwargs is non-empty after this, it becomes the call params
         as_json = kwargs.pop('as_json', True)
+        api = kwargs.pop('api', None)
         _id = kwargs.pop('_id', 0)
 
-        headers = {"jsonrpc": "2.0", "id": _id}
-        if kwargs is not None and len(kwargs) > 0:
+        # `kwargs` for object-style param, `args` for list-style. pick one.
+        assert not (kwargs and args), 'fail - passed array AND object args'
+        params = kwargs if kwargs else args
 
-            body_dict = dict(headers)
-            body_dict.update({"method": "call",
-                              "params": [api, name, kwargs]})
-        elif api:
-
-            body_dict = dict(headers)
-            body_dict.update({"method": "call",
-                              "params": [api, name, args]})
-
+        if api:
+            body = {'jsonrpc': '2.0',
+                    'id': _id,
+                    'method': 'call',
+                    'params': [api, name, params]}
         else:
-
-            body_dict = dict(headers)
-            body_dict.update({"method": name, "params": args})
+            body = {'jsonrpc': '2.0',
+                    'id': _id,
+                    'method': name,
+                    'params': params}
 
         if as_json:
-            return json.dumps(body_dict, ensure_ascii=False).encode('utf8')
-        else:
-            return body_dict
+            return json.dumps(body, ensure_ascii=False).encode('utf8')
+
+        return body
 
     def call(self,
              name,
@@ -179,96 +211,85 @@ class HttpClient(object):
         Warnings:
 
             This command will auto-retry in case of node failure, as well
-            as handle node fail-over, unless we are broadcasting a
-            transaction.  In latter case, the exception is **re-raised**.
+            as handle node fail-over.
 
         """
 
-        api = kwargs.get('api', None)
-        return_with_args = kwargs.get('return_with_args', None)
-        _ret_cnt = kwargs.get('_ret_cnt', 0)
-
-        body = HttpClient.json_rpc_body(name, *args, **kwargs)
-        response = None
-
+        # tuple of Exceptions which are eligible for retry
+        retry_exceptions = (MaxRetryError, ReadTimeoutError,
+                            ProtocolError, RPCErrorRecoverable,)
         if sys.version > '3.0':
-            errorList = (MaxRetryError, ReadTimeoutError, ProtocolError,
-                         RemoteDisconnected, ConnectionResetError,)
+            retry_exceptions += (RemoteDisconnected, ConnectionResetError,)
         else:
-            errorList = (MaxRetryError, ReadTimeoutError, ProtocolError,
-                         HTTPException,)
+            retry_exceptions += (HTTPException,)
 
-        try:
-            response = self.request(body=body)
-        except (errorList) as e:
-            # if we broadcasted a transaction, always raise
-            # this is to prevent potential for double spend scenario
-            if api == 'network_broadcast_api':
-                raise e
-
-            # try switching nodes before giving up
-            if _ret_cnt > 2:
-                # we should wait only a short period before trying
-                # the next node, but still slowly increase backoff
-                time.sleep(_ret_cnt)
-            if _ret_cnt > 10:
-                raise e
-            self.next_node()
-            logging.debug('Switched node to %s due to exception: %s' %
-                          (self.hostname, e.__class__.__name__))
-            return self.call(
-                name,
-                return_with_args=return_with_args,
-                _ret_cnt=_ret_cnt + 1,
-                *args)
-        except Exception as e:
-            if self.re_raise:
-                raise e
-            else:
-                extra = dict(err=e, request=self.request)
-                logger.info('Request error', extra=extra)
-                return self._return(
-                    response=response,
-                    args=args,
-                    return_with_args=return_with_args)
-        else:
-            redirectStatuses = list(response.REDIRECT_STATUSES)
-            redirectStatuses.append(200)
-            if response.status not in tuple(redirectStatuses):
-                logger.info('non 200 response:%s', response.status)
-
-            return self._return(
-                response=response,
-                args=args,
-                return_with_args=return_with_args)
-
-    def _return(self, response=None, args=None, return_with_args=None):
-        return_with_args = return_with_args or self.return_with_args
-        result = None
-
-        if response:
+        tries = 0
+        while True:
             try:
-                response_json = json.loads(response.data.decode('utf-8'))
+
+                body_kwargs = kwargs.copy()
+                if not self._curr_node_downgraded():
+                    body_kwargs['api'] = 'condenser_api'
+
+                body = HttpClient.json_rpc_body(name, *args, **body_kwargs)
+                response = self.request(body=body)
+
+                success_codes = tuple(list(response.REDIRECT_STATUSES) + [200])
+                if response.status not in success_codes:
+                    raise RPCErrorRecoverable("non-200 response: %s from %s"
+                                              % (response.status, self.hostname))
+
+                result = json.loads(response.data.decode('utf-8'))
+                assert result, 'result entirely blank'
+
+                if 'error' in result:
+                    # legacy (pre-appbase) nodes always return err code 1
+                    legacy = result['error']['code'] == 1
+                    detail = result['error']['message']
+
+                    # some errors have no data key (db lock error)
+                    if 'data' not in result['error']:
+                        error = 'error'
+                    # some errors have no name key (jussi errors)
+                    elif 'name' not in result['error']['data']:
+                        error = 'unspecified error'
+                    else:
+                        error = result['error']['data']['name']
+
+                    if legacy:
+                        detail = ":".join(detail.split("\n")[0:2])
+                        if not self._curr_node_downgraded():
+                            self._downgrade_curr_node()
+                            logging.error('Downgrade-retry %s', self.hostname)
+                            continue
+
+                    detail = ('%s from %s (%s) in %s' % (
+                              error, self.hostname, detail, name))
+
+                    if self._is_error_recoverable(result['error']):
+                        raise RPCErrorRecoverable(detail)
+                    else:
+                        raise RPCError(detail)
+
+                return result['result']
+
+            except retry_exceptions as e:
+                if tries >= 10:
+                    logging.error('Failed after %d attempts -- %s', tries, e)
+                    raise e
+                tries += 1
+                logging.info('Retry in %ds -- %s', tries, e)
+                time.sleep(tries)
+                self.next_node()
+                continue
+
+            # TODO: unclear why this case is here; need to explicitly
+            #       define exceptions for which we refuse to retry.
             except Exception as e:
-                extra = dict(response=response, request_args=args, err=e)
-                logger.info('failed to load response', extra=extra)
-                result = None
-            else:
-                if 'error' in response_json:
-                    error = response_json['error']
+                extra = dict(err=e, request=self.request)
+                logger.error('Unexpected error: %s', e, extra=extra)
+                raise e
 
-                    if self.re_raise:
-                        error_message = error.get(
-                            'detail', response_json['error']['message'])
-                        raise RPCError(error_message)
-
-                    result = response_json['error']
-                else:
-                    result = response_json.get('result', None)
-        if return_with_args:
-            return result, args
-        else:
-            return result
 
     def call_multi_with_futures(self, name, params, api=None,
                                 max_workers=None):

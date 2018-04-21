@@ -13,14 +13,10 @@ from .blockchain import Blockchain
 from .post import Post
 from .utils import resolve_identifier
 from .utils import compat_compose_dictionary
+from .instance import get_config_node_list
 
 logger = logging.getLogger(__name__)
 
-
-def get_config_node_list():
-    nodes = configStorage.get('nodes', None)
-    if nodes:
-        return nodes.split(',')
 
 
 class Steemd(HttpClient):
@@ -108,7 +104,7 @@ class Steemd(HttpClient):
             :param str sort: Sort the list by "recent" or "payout"
             :param str category: Only show posts in this category
             :param str start: Show posts after this post. Takes an
-                              identifier of the form ``@author/permlink``
+                              identifier of the form ``author/permlink``
         """
 
         discussion_query = {

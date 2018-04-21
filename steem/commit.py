@@ -134,13 +134,13 @@ class Commit(object):
         return tx.broadcast()
 
     def sign(self, unsigned_trx, wifs=[]):
-        """ Sign a provided transaction witht he provided key(s)
+        """ Sign a provided transaction with the provided key(s)
 
             :param dict unsigned_trx: The transaction to be signed and returned
             :param string wifs: One or many wif keys to use for signing
                 a transaction. If not present, the keys will be loaded
                 from the wallet as defined in "missing_signatures" key
-                of the transactizions.
+                of the transactions.
         """
         tx = TransactionBuilder(
             unsigned_trx,
@@ -181,7 +181,7 @@ class Commit(object):
 
         If this post is intended as a reply/comment, `reply_identifier` needs
         to be set with the identifier of the parent post/comment (eg.
-        `@author/permlink`).
+        `author/permlink`).
 
         Optionally you can also set json_metadata, comment_options and upvote
         the newly created post as an author.
@@ -356,7 +356,7 @@ class Commit(object):
         """ Vote for a post
 
             :param str identifier: Identifier for the post to upvote Takes
-                                   the form ``@author/permlink``
+                                   the form ``author/permlink``
             :param float weight: Voting weight. Range: -100.0 - +100.0. May
                                  not be 0.0
             :param str account: Voter to use for voting. (Optional)
@@ -897,7 +897,7 @@ class Commit(object):
         # if no values were set by user, claim all outstanding balances on
         # account
         if none(
-                int(first(x.split(' ')))
+                float(first(x.split(' ')))
                 for x in [reward_sbd, reward_steem, reward_vests]):
             a = Account(account)
             reward_steem = a['reward_steem_balance']
@@ -1308,7 +1308,7 @@ class Commit(object):
     def resteem(self, identifier, account=None):
         """ Resteem a post
 
-            :param str identifier: post identifier (@<account>/<permlink>)
+            :param str identifier: post identifier (<account>/<permlink>)
             :param str account: (optional) the account to allow access
                 to (defaults to ``default_account``)
         """

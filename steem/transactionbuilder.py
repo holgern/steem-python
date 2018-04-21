@@ -4,6 +4,7 @@ from .wallet import Wallet
 from steembase.account import PrivateKey
 from steembase.exceptions import (InsufficientAuthorityError, MissingKeyError,
                                   InvalidKeyFormat)
+from steembase import operations
 from steembase.operations import Operation
 from steembase.transactions import SignedTransaction, fmt_time_from_now, \
     get_block_params
@@ -103,10 +104,18 @@ class TransactionBuilder(dict):
                 from the wallet as defined in "missing_signatures" key
                 of the transactions.
         """
+
+        # We need to set the default prefix, otherwise pubkeys are
+        # presented wrongly!
+        if self.steemd:
+            operations.default_prefix = self.steemd.chain_params["prefix"]
+        elif "blockchain" in self:
+            operations.default_prefix = self["blockchain"]["prefix"]
+
         try:
             signedtx = SignedTransaction(**self.json())
-        except:  # noqa FIXME(sneak)
-            raise ValueError("Invalid TransactionBuilder Format")
+        except Exception as e:  # noqa FIXME(sneak)
+            raise e
 
         if not any(self.wifs):
             raise MissingKeyError
@@ -127,7 +136,13 @@ class TransactionBuilder(dict):
             if not self.steemd.verify_authority(self.json()):
                 raise InsufficientAuthorityError
         except Exception as e:
-            raise e
+            # There is an issue with some appbase builds which makes
+            # `verify_authority` unusable. TODO: remove this case #212
+            if 'Bad Cast:Invalid cast from string_type to Array' in str(e):
+                log.error("Ignoring verify_authority failure. See #212.")
+            else:
+                print("failing on {}".format(e))
+                raise e
 
         try:
             self.steemd.broadcast_transaction(self.json())
